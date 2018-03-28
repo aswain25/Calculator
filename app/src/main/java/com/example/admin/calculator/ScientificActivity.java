@@ -3,6 +3,7 @@ package com.example.admin.calculator;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.provider.SyncStateContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -18,11 +19,14 @@ public class ScientificActivity extends AppCompatActivity {
         Add,
         Subtract,
         Multiply,
-        Divide
+        Divide,
+        Exponent,
+        Modulus,
     }
 
-    MainActivity.OperatorType currentOperator;
-    double currentOperand;
+    OperatorType currentOperator;
+    boolean displayingCurrentOperand = false;
+    double currentOperand = Double.NaN;
     TextView display;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +43,8 @@ public class ScientificActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        display = findViewById(R.id.display);
     }
 
     @Override
@@ -56,15 +62,23 @@ public class ScientificActivity extends AppCompatActivity {
 
     public void numberClicked(View view)
     {
+        if (displayingCurrentOperand)
+        {
+            display.setText("");
+            displayingCurrentOperand = false;
+        }
         Button asButton = (Button)view;
+        String bText = asButton.getText().toString().equals("e") ? "2.17" : (asButton.getText().toString().equals("π") ? "3.1415" : asButton.getText().toString());
         if (display.getText().toString().equals("0"))
-            display.setText(asButton.getText().toString());
+            display.setText(bText);
         else
-            display.setText(display.getText().toString() + asButton.getText().toString());
+            display.setText(display.getText().toString() + bText);
     }
     public void cClicked(View view)
     {
         display.setText("0");
+        displayingCurrentOperand = false;
+        currentOperand = Double.NaN;
     }
     public void bsClicked(View view)
     {
@@ -89,39 +103,107 @@ public class ScientificActivity extends AppCompatActivity {
         switch (buttonText)
         {
             case "+":
-                currentOperator = MainActivity.OperatorType.Add;
+                currentOperator = OperatorType.Add;
                 break;
             case "-":
-                currentOperator = MainActivity.OperatorType.Subtract;
+                currentOperator = OperatorType.Subtract;
                 break;
             case "✕":
-                currentOperator = MainActivity.OperatorType.Multiply;
+                currentOperator = OperatorType.Multiply;
                 break;
             case "÷":
-                currentOperator = MainActivity.OperatorType.Divide;
+                currentOperator = OperatorType.Divide;
+                break;
+            case "x^y":
+                currentOperator = OperatorType.Exponent;
+                break;
+            case "mod":
+                currentOperator = OperatorType.Modulus;
                 break;
         }
-        currentOperand = Double.parseDouble(display.getText().toString());
-        display.setText("0");
+        if (!displayingCurrentOperand)
+        {
+            if (Double.isNaN(currentOperand))
+                currentOperand = Double.parseDouble(display.getText().toString());
+            else
+                currentOperand = operate();
+            displayingCurrentOperand = true;
+            display.setText(Double.toString(currentOperand));
+        }
+    }
+    public void unaryOperatorClicked(View view)
+    {
+        String operator = ((Button)view).getText().toString();
+        double currentValue = Double.parseDouble(display.getText().toString());
+        if (!display.getText().toString().equals(""))
+        {
+            switch (operator)
+            {
+                case "sin":
+                    display.setText(String.valueOf(Math.sin(currentValue)));
+                    break;
+                case "cos":
+                    display.setText(String.valueOf(Math.cos(currentValue)));
+                    break;
+                case "tan":
+                    display.setText(String.valueOf(Math.tan(currentValue)));
+                    break;
+                case "x^2":
+                    display.setText(String.valueOf(currentValue *currentValue ));
+                    break;
+                case "√":
+                    display.setText(String.valueOf(Math.sqrt(currentValue)));
+                    break;
+                case "10^x":
+                    display.setText(String.valueOf(Math.pow(10, currentValue) ));
+                    break;
+                case "log":
+                    display.setText(String.valueOf(Math.log(currentValue) ));
+                    break;
+                case "e^x":
+                    display.setText(String.valueOf(Math.pow(Math.E, currentValue) ));
+                    break;
+                case "n!":
+                    display.setText(String.valueOf(frac(currentValue)));
+                    break;
+
+            }
+            //currentOperand = Double.NaN;
+        }
+    }
+    private static double frac(double n)
+    {
+        for (int i = (int)Math.floor(n) - 1; i > 0; i--)
+            n *= i;
+        return n;
     }
     public void equalsClicked(View view)
+    {
+        if (!displayingCurrentOperand && !Double.isNaN(currentOperand))
+        {
+            display.setText(String.valueOf(operate()));
+            currentOperand = Double.NaN;
+        }
+    }
+    public double operate()
     {
         double operandTwo = Double.parseDouble(display.getText().toString());
         switch (currentOperator)
         {
             case Add:
-                display.setText(String.valueOf(currentOperand + operandTwo));
-                break;
+                return currentOperand + operandTwo;
             case Subtract:
-                display.setText(String.valueOf(currentOperand - operandTwo));
-                break;
+                return currentOperand - operandTwo;
             case Multiply:
-                display.setText(String.valueOf(currentOperand * operandTwo));
-                break;
+                return currentOperand * operandTwo;
             case Divide:
-                display.setText(String.valueOf(currentOperand / operandTwo));
-                break;
+                return currentOperand / operandTwo;
+            case Exponent:
+                return Math.pow(currentOperand, operandTwo);
+            case Modulus:
+                return currentOperand % operandTwo;
+            default:
+                return 0;
         }
-
     }
 }
