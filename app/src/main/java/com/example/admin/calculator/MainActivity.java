@@ -1,11 +1,14 @@
 package com.example.admin.calculator;
 
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
     public enum OperatorType
@@ -17,7 +20,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     OperatorType currentOperator;
-    double currentOperand;
+    boolean displayingCurrentOperand = false;
+    double currentOperand = Double.NaN;
     TextView display;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,8 +31,26 @@ public class MainActivity extends AppCompatActivity {
         display = findViewById(R.id.display);
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Checks the orientation of the screen
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Intent intent = new Intent(getApplicationContext(), ScientificActivity.class);
+            startActivity(intent);
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
+            return;
+        }
+    }
+
     public void numberClicked(View view)
     {
+        if (displayingCurrentOperand)
+        {
+            display.setText("");
+            displayingCurrentOperand = false;
+        }
         Button asButton = (Button)view;
         if (display.getText().toString().equals("0"))
             display.setText(asButton.getText().toString());
@@ -38,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
     public void cClicked(View view)
     {
         display.setText("0");
+        displayingCurrentOperand = false;
+        currentOperand = Double.NaN;
     }
     public void bsClicked(View view)
     {
@@ -74,27 +98,39 @@ public class MainActivity extends AppCompatActivity {
                 currentOperator = OperatorType.Divide;
                 break;
         }
-        currentOperand = Double.parseDouble(display.getText().toString());
-        display.setText("0");
+        if (!displayingCurrentOperand)
+        {
+            if (Double.isNaN(currentOperand))
+                currentOperand = Double.parseDouble(display.getText().toString());
+            else
+                currentOperand = operate();
+            displayingCurrentOperand = true;
+            display.setText(Double.toString(currentOperand));
+        }
     }
     public void equalsClicked(View view)
+    {
+        if (!displayingCurrentOperand && !Double.isNaN(currentOperand))
+        {
+            display.setText(String.valueOf(operate()));
+            currentOperand = Double.NaN;
+        }
+    }
+    public double operate()
     {
         double operandTwo = Double.parseDouble(display.getText().toString());
         switch (currentOperator)
         {
             case Add:
-                display.setText(String.valueOf(currentOperand + operandTwo));
-                break;
+                return currentOperand + operandTwo;
             case Subtract:
-                display.setText(String.valueOf(currentOperand - operandTwo));
-                break;
+                return currentOperand - operandTwo;
             case Multiply:
-                display.setText(String.valueOf(currentOperand * operandTwo));
-                break;
+                return currentOperand * operandTwo;
             case Divide:
-                display.setText(String.valueOf(currentOperand / operandTwo));
-                break;
+                return currentOperand / operandTwo;
+            default:
+                return 0;
         }
-
     }
 }
